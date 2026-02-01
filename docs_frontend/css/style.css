@@ -1,0 +1,20 @@
+@charset "UTF-8";
+
+*{
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+html, body {
+    height: 100vh;
+    width: 100vw;
+}
+
+div {
+    color: gray;
+    weight: 200px;
+    height: 200px;
+    border-radius: 20px;
+    
+}
