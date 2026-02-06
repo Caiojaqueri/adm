@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parcerias</title>
+    <link rel="stylesheet" href="css/parcerias.css">
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-btn">
+            ← Voltar
+        </a>
+
+        <h1>Parcerias</h1>
+
+        <div class="form-container">
+            <h2>Adicionar Parceria</h2>
+            <div class="form-grid">
+                <input type="text" id="nome" placeholder="Nome">
+                <input type="text" id="funcao" placeholder="Função">
+                <input type="text" id="diasPostagem" placeholder="Dias de Postagem">
+                <button class="btn-add" onclick="adicionarParceria()">+ Adicionar</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Função</th>
+                        <th>Dias de Postagem</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaParcerias">
+                    <tr>
+                        <td colspan="4" class="empty-state">
+                            Nenhuma parceria cadastrada. Adicione uma parceria acima.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let parcerias = [];
+
+        function adicionarParceria() {
+            const nome = document.getElementById('nome').value;
+            const funcao = document.getElementById('funcao').value;
+            const diasPostagem = document.getElementById('diasPostagem').value;
+
+            if (!nome || !funcao || !diasPostagem) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+
+            const parceria = {
+                id: Date.now(),
+                nome,
+                funcao,
+                diasPostagem
+            };
+
+            parcerias.push(parceria);
+            renderizarTabela();
+
+            // Limpar formulário
+            document.getElementById('nome').value = '';
+            document.getElementById('funcao').value = '';
+            document.getElementById('diasPostagem').value = '';
+        }
+
+        function removerParceria(id) {
+            parcerias = parcerias.filter(p => p.id !== id);
+            renderizarTabela();
+        }
+
+        function renderizarTabela() {
+            const tbody = document.getElementById('tabelaParcerias');
+            
+            if (parcerias.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="empty-state">
+                            Nenhuma parceria cadastrada. Adicione uma parceria acima.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = parcerias.map(parceria => `
+                <tr>
+                    <td>${parceria.nome}</td>
+                    <td>${parceria.funcao}</td>
+                    <td>${parceria.diasPostagem}</td>
+                    <td>
+                        <button class="btn-delete" onclick="removerParceria(${parceria.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

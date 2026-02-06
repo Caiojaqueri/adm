@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda</title>
+    <link rel="stylesheet" href="css/agenda.css">
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-btn">
+            ← Voltar
+        </a>
+
+        <h1>Agenda</h1>
+
+        <div class="grid-layout">
+            <!-- Calendário -->
+            <div>
+                <div class="calendar-section">
+                    <h2>Calendário</h2>
+                    <div class="calendar">
+                        <div class="calendar-header">
+                            <h3 id="mesAno"></h3>
+                            <div class="calendar-nav">
+                                <button onclick="mesAnterior()">◀</button>
+                                <button onclick="proximoMes()">▶</button>
+                            </div>
+                        </div>
+                        <div class="calendar-grid" id="calendarioGrid"></div>
+                    </div>
+                    <p class="calendar-info">Clique em um dia para adicionar um compromisso</p>
+                </div>
+
+                <!-- Formulário -->
+                <div id="formulario" class="form-container" style="display: none;">
+                    <h3>
+                        Novo Compromisso
+                        <button class="close-btn" onclick="fecharFormulario()">×</button>
+                    </h3>
+                    <div class="form-group">
+                        <input type="text" id="titulo" placeholder="Título do compromisso">
+                    </div>
+                    <div class="form-row">
+                        <input type="date" id="data">
+                        <input type="time" id="hora">
+                    </div>
+                    <div class="form-group">
+                        <textarea id="descricao" placeholder="Descrição (opcional)"></textarea>
+                    </div>
+                    <button class="btn-add" onclick="adicionarCompromisso()">+ Adicionar Compromisso</button>
+                </div>
+            </div>
+
+            <!-- Lista de Compromissos -->
+            <div class="compromissos-section">
+                <h2>Compromissos Agendados</h2>
+                <div class="compromissos-list" id="listaCompromissos">
+                    <div class="empty-state">
+                        Nenhum compromisso agendado. Clique em um dia no calendário para adicionar.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let compromissos = [];
+        let mesAtual = new Date().getMonth();
+        let anoAtual = new Date().getFullYear();
+        let diaSelecionado = null;
+
+        const meses = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+        function renderizarCalendario() {
+            const grid = document.getElementById('calendarioGrid');
+            document.getElementById('mesAno').textContent = `${meses[mesAtual]} ${anoAtual}`;
+
+            // Limpar grid
+            grid.innerHTML = '';
+
+            // Headers dos dias da semana
+            diasSemana.forEach(dia => {
+                const header = document.createElement('div');
+                header.className = 'calendar-day-header';
+                header.textContent = dia;
+                grid.appendChild(header);
+            });
+
+            // Primeiro dia do mês
+            const primeiroDia = new Date(anoAtual, mesAtual, 1).getDay();
+            const diasNoMes = new Date(anoAtual, mesAtual + 1, 0).getDate();
+            const hoje = new Date();
+
+            // Dias do mês anterior
+            const diasMesAnterior = new Date(anoAtual, mesAtual, 0).getDate();
+            for (let i = primeiroDia - 1; i >= 0; i--) {
+                const dia = document.createElement('div');
+                dia.className = 'calendar-day other-month';
+                dia.textContent = diasMesAnterior - i;
+                grid.appendChild(dia);
+            }
+
+            // Dias do mês atual
+            for (let dia = 1; dia <= diasNoMes; dia++) {
+                const diaElement = document.createElement('div');
+                diaElement.className = 'calendar-day';
+                diaElement.textContent = dia;
+
+                // Verificar se é hoje
+                if (dia === hoje.getDate() && mesAtual === hoje.getMonth() && anoAtual === hoje.getFullYear()) {
+                    diaElement.classList.add('today');
+                }
+
+                // Verificar se tem compromisso
+                const dataStr = `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+                if (compromissos.some(c => c.data === dataStr)) {
+                    diaElement.classList.add('has-event');
+                }
+
+                // Click handler
+                diaElement.addEventListener('click', () => selecionarDia(dia));
+                grid.appendChild(diaElement);
+            }
+
+            // Dias do próximo mês
+            const totalCelulas = grid.children.length - 7; // Subtrair headers
+            const celulasRestantes = 42 - totalCelulas - 7; // 6 semanas * 7 dias - headers
+            for (let i = 1; i <= celulasRestantes; i++) {
+                const dia = document.createElement('div');
+                dia.className = 'calendar-day other-month';
+                dia.textContent = i;
+                grid.appendChild(dia);
+            }
+        }
+
+        function selecionarDia(dia) {
+            diaSelecionado = dia;
+            const dataStr = `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+            document.getElementById('data').value = dataStr;
+            document.getElementById('formulario').style.display = 'block';
+            
+            // Atualizar seleção visual
+            document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+
+        function fecharFormulario() {
+            document.getElementById('formulario').style.display = 'none';
+            document.getElementById('titulo').value = '';
+            document.getElementById('hora').value = '';
+            document.getElementById('descricao').value = '';
+        }
+
+        function adicionarCompromisso() {
+            const titulo = document.getElementById('titulo').value;
+            const data = document.getElementById('data').value;
+            const hora = document.getElementById('hora').value;
+            const descricao = document.getElementById('descricao').value;
+
+            if (!titulo || !data || !hora) {
+                alert('Por favor, preencha pelo menos título, data e hora');
+                return;
+            }
+
+            const compromisso = {
+                id: Date.now(),
+                titulo,
+                data,
+                hora,
+                descricao
+            };
+
+            compromissos.push(compromisso);
+            compromissos.sort((a, b) => {
+                const dataA = new Date(a.data + ' ' + a.hora);
+                const dataB = new Date(b.data + ' ' + b.hora);
+                return dataA - dataB;
+            });
+
+            renderizarCompromissos();
+            renderizarCalendario();
+            fecharFormulario();
+        }
+
+        function removerCompromisso(id) {
+            compromissos = compromissos.filter(c => c.id !== id);
+            renderizarCompromissos();
+            renderizarCalendario();
+        }
+
+        function formatarData(dataStr) {
+            const data = new Date(dataStr + 'T00:00:00');
+            return data.toLocaleDateString('pt-BR', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+
+        function renderizarCompromissos() {
+            const lista = document.getElementById('listaCompromissos');
+
+            if (compromissos.length === 0) {
+                lista.innerHTML = `
+                    <div class="empty-state">
+                        Nenhum compromisso agendado. Clique em um dia no calendário para adicionar.
+                    </div>
+                `;
+                return;
+            }
+
+            lista.innerHTML = compromissos.map(c => `
+                <div class="compromisso-card">
+                    <div class="compromisso-header">
+                        <h3>${c.titulo}</h3>
+                        <button class="btn-delete" onclick="removerCompromisso(${c.id})">🗑️</button>
+                    </div>
+                    <div class="compromisso-info">
+                        <p style="text-transform: capitalize;">${formatarData(c.data)}</p>
+                        <p>Horário: ${c.hora}</p>
+                    </div>
+                    ${c.descricao ? `<p class="compromisso-descricao">${c.descricao}</p>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function mesAnterior() {
+            mesAtual--;
+            if (mesAtual < 0) {
+                mesAtual = 11;
+                anoAtual--;
+            }
+            renderizarCalendario();
+        }
+
+        function proximoMes() {
+            mesAtual++;
+            if (mesAtual > 11) {
+                mesAtual = 0;
+                anoAtual++;
+            }
+            renderizarCalendario();
+        }
+
+        // Inicializar
+        renderizarCalendario();
+        renderizarCompromissos();
+    </script>
+</body>
+</html>

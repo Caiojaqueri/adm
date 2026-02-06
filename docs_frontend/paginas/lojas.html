@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lojas - Estoque de Ervas</title>
+    <link rel="stylesheet" href="css/lojas.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Minhas Lojas</h2>
+                <button class="btn-nova-loja" onclick="adicionarNovaLoja()">+ Nova Loja</button>
+            </div>
+            <div class="lojas-list" id="lojasLista">
+                <!-- Lojas serão inseridas aqui -->
+            </div>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div class="main-content">
+            <a href="index.html" class="back-btn">
+                ← Voltar
+            </a>
+
+            <div id="contentArea">
+                <div class="no-loja-selected">
+                    <h2>Nenhuma loja selecionada</h2>
+                    <p>Crie ou selecione uma loja no menu lateral</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let lojas = JSON.parse(localStorage.getItem('lojas')) || [];
+        let lojaAtual = null;
+
+        function renderizarLojas() {
+            const lista = document.getElementById('lojasLista');
+            
+            if (lojas.length === 0) {
+                lista.innerHTML = '<p style="text-align: center; color: #999; padding: 2rem 0;">Nenhuma loja criada</p>';
+                return;
+            }
+
+            lista.innerHTML = lojas.map(loja => `
+                <div class="loja-item ${lojaAtual && lojaAtual.id === loja.id ? 'active' : ''}" onclick="selecionarLoja(${loja.id})">
+                    <div class="loja-item-content">
+                        <h3>${loja.nome}</h3>
+                        <p>${loja.produtos ? loja.produtos.length : 0} produtos</p>
+                    </div>
+                    <button class="btn-delete-loja" onclick="event.stopPropagation(); removerLoja(${loja.id})">🗑️</button>
+                </div>
+            `).join('');
+        }
+
+        function adicionarNovaLoja() {
+            const nome = prompt('Nome da nova loja:');
+            if (!nome) return;
+
+            const novaLoja = {
+                id: Date.now(),
+                nome: nome,
+                produtos: []
+            };
+
+            lojas.push(novaLoja);
+            salvarLojas();
+            renderizarLojas();
+            selecionarLoja(novaLoja.id);
+        }
+
+        function removerLoja(id) {
+            if (!confirm('Tem certeza que deseja remover esta loja?')) return;
+
+            lojas = lojas.filter(l => l.id !== id);
+            
+            if (lojaAtual && lojaAtual.id === id) {
+                lojaAtual = null;
+                mostrarTelaInicial();
+            }
+            
+            salvarLojas();
+            renderizarLojas();
+        }
+
+        function selecionarLoja(id) {
+            lojaAtual = lojas.find(l => l.id === id);
+            renderizarLojas();
+            renderizarConteudoLoja();
+        }
+
+        function mostrarTelaInicial() {
+            document.getElementById('contentArea').innerHTML = `
+                <div class="no-loja-selected">
+                    <h2>Nenhuma loja selecionada</h2>
+                    <p>Crie ou selecione uma loja no menu lateral</p>
+                </div>
+            `;
+        }
+
+        function renderizarConteudoLoja() {
+            if (!lojaAtual) {
+                mostrarTelaInicial();
+                return;
+            }
+
+            document.getElementById('contentArea').innerHTML = `
+                <h1>Estoque de Ervas</h1>
+                <p class="loja-name">📍 ${lojaAtual.nome}</p>
+
+                <div class="form-container">
+                    <h2>Adicionar Produto</h2>
+                    <div class="form-grid">
+                        <input type="text" id="nome" placeholder="Nome do Produto">
+                        <input type="number" id="peso" placeholder="Peso (g)" oninput="calcularSaquinhos()">
+                        <input type="number" id="valorUnidade" placeholder="Valor Unidade (R$)" step="0.01">
+                        <input type="date" id="data">
+                        <button class="btn-add" onclick="adicionarProduto()">+ Adicionar</button>
+                    </div>
+                    <div id="infoCalculo" class="info-text"></div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome do Produto</th>
+                                <th>Peso (g)</th>
+                                <th>Qtd Estoque (saquinhos)</th>
+                                <th>Valor Unidade (R$)</th>
+                                <th>Data</th>
+                                <th>Total a Faturar (R$)</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaProdutos">
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            renderizarProdutos();
+        }
+
+        function calcularSaquinhos() {
+            const peso = parseFloat(document.getElementById('peso').value) || 0;
+            const saquinhos = Math.floor(peso / 10);
+            const infoDiv = document.getElementById('infoCalculo');
+            
+            if (peso > 0) {
+                infoDiv.textContent = `${peso}g = ${saquinhos} saquinhos (cada saquinho tem 10g)`;
+            } else {
+                infoDiv.textContent = '';
+            }
+        }
+
+        function adicionarProduto() {
+            const nome = document.getElementById('nome').value;
+            const peso = parseFloat(document.getElementById('peso').value);
+            const valorUnidade = parseFloat(document.getElementById('valorUnidade').value);
+            const data = document.getElementById('data').value;
+
+            if (!nome || !peso || !valorUnidade || !data) {
+                alert('Por favor, preencha todos os campos');
+                return;
+            }
+
+            const qtdEstoque = Math.floor(peso / 10);
+            const totalFaturar = qtdEstoque * valorUnidade;
+
+            const produto = {
+                id: Date.now(),
+                nome,
+                peso,
+                qtdEstoque,
+                valorUnidade,
+                data,
+                totalFaturar
+            };
+
+            lojaAtual.produtos.push(produto);
+            salvarLojas();
+            renderizarProdutos();
+
+            // Limpar formulário
+            document.getElementById('nome').value = '';
+            document.getElementById('peso').value = '';
+            document.getElementById('valorUnidade').value = '';
+            document.getElementById('data').value = '';
+            document.getElementById('infoCalculo').textContent = '';
+        }
+
+        function removerProduto(id) {
+            lojaAtual.produtos = lojaAtual.produtos.filter(p => p.id !== id);
+            salvarLojas();
+            renderizarProdutos();
+            renderizarLojas(); // Atualizar contador de produtos
+        }
+
+        function renderizarProdutos() {
+            const tbody = document.getElementById('tabelaProdutos');
+
+            if (!lojaAtual || lojaAtual.produtos.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            Nenhum produto cadastrado. Adicione um produto acima.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = lojaAtual.produtos.map(p => `
+                <tr>
+                    <td>${p.nome}</td>
+                    <td>${p.peso}g</td>
+                    <td>${p.qtdEstoque}</td>
+                    <td>R$ ${p.valorUnidade.toFixed(2)}</td>
+                    <td>${new Date(p.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                    <td>R$ ${p.totalFaturar.toFixed(2)}</td>
+                    <td>
+                        <button class="btn-delete" onclick="removerProduto(${p.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function salvarLojas() {
+            localStorage.setItem('lojas', JSON.stringify(lojas));
+        }
+
+        // Inicializar
+        renderizarLojas();
+        if (lojas.length > 0) {
+            selecionarLoja(lojas[0].id);
+        } else {
+            mostrarTelaInicial();
+        }
+    </script>
+</body>
+</html>
